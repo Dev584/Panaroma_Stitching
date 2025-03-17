@@ -8,51 +8,45 @@ import cv2
 import random
 
 def warp_and_blend(img1, img2, H):
-    """Warps img2 using homography H and blends it with img1."""
-
-    # Get image dimensions
+    # Applies homography to warp img1 and blends it smoothly with img2.
+    
+    # Get dimensions of both images
     h1, w1 = img1.shape[:2]
     h2, w2 = img2.shape[:2]
 
     # Define the four corners of img2
-    corners_img2 = np.array([
-        [0, 0], [w2, 0], [w2, h2], [0, h2]
-    ], dtype=np.float32).reshape(-1, 1, 2)
+    corners_img2 = np.array([[0, 0], [0, h2], [w2, h2], [w2, 0]], dtype=np.float32).reshape(-1, 1, 2)
 
-    # Transform img2's corners using H
+    # Transform corners of img2 using homography
     transformed_corners = cv2.perspectiveTransform(corners_img2, H)
 
-    # Compute bounding box for the final stitched image
-    min_x = int(min(transformed_corners[:, 0, 0].min(), 0))
-    max_x = int(max(transformed_corners[:, 0, 0].max(), w1))
-    min_y = int(min(transformed_corners[:, 0, 1].min(), 0))
-    max_y = int(max(transformed_corners[:, 0, 1].max(), h1))
+    # Compute the bounding box
+    points = np.vstack((corners_img2, transformed_corners))
+    [x_min, y_min] = np.int32(points.min(axis=0).ravel() - 0.5)
+    [x_max, y_max] = np.int32(points.max(axis=0).ravel() + 0.5)
 
-    # Translation matrix to align coordinates to positive values
-    translation = np.array([
-        [1, 0, -min_x],
-        [0, 1, -min_y],
-        [0, 0, 1]
-    ], dtype=np.float32)
+    # Compute translation matrix to shift the result into positive coordinates
+    translation_matrix = np.array([[1, 0, -x_min], [0, 1, -y_min], [0, 0, 1]], dtype=np.float32)
+    H_translated = translation_matrix @ H
 
-    H_translated = translation @ H
+    # Warp img1 using homography
+    panorama_width = x_max - x_min
+    panorama_height = y_max - y_min
+    warped_img1 = cv2.warpPerspective(img1, H_translated, (panorama_width, panorama_height))
 
-    # Warp both images
-    warped_img1 = cv2.warpPerspective(img1, translation, (max_x - min_x, max_y - min_y))
-    warped_img2 = cv2.warpPerspective(img2, H_translated, (max_x - min_x, max_y - min_y))
+    # Warp img2 into the same coordinate space
+    warped_img2 = np.zeros_like(warped_img1)
+    warped_img2[-y_min:h2 - y_min, -x_min:w2 - x_min] = img2
 
-    # Blend images (simple feathering)
-    mask1 = (warped_img1 > 0).astype(np.uint8)
-    mask2 = (warped_img2 > 0).astype(np.uint8)
-    
-    # Fix shape mismatch (Ensure blend_mask has correct dimensions)
-    blend_mask = np.clip(mask1 + mask2, 0, 1).astype(np.uint8)[..., None]
+    # Create a mask to define valid regions in both images
+    mask1 = (warped_img1 > 0).astype(np.float32)
+    mask2 = (warped_img2 > 0).astype(np.float32)
 
-    # Ensure all images have the same shape
-    assert warped_img1.shape == warped_img2.shape, "Shape mismatch in blending!"
+    # Compute the overlap mask (feathered blending)
+    overlap_mask = mask1 + mask2
+    alpha = np.clip(mask2 / (overlap_mask + 1e-6), 0, 1)  # Normalize blend weights
 
-    # Create a blended panorama
-    alpha = np.float32(mask2) / (mask1 + mask2 + 1e-6)  # Avoid division by zero
-    blended = np.uint8(alpha * warped_img1 + (1 - alpha) * warped_img2)
+    # Blend images using weighted averaging in the overlap region
+    blended = (warped_img1 * (1 - alpha) + warped_img2 * alpha).astype(np.uint8)
 
     return blended

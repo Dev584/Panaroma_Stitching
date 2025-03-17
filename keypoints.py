@@ -43,7 +43,6 @@ def detect_corner(img, N_Strong, method="HARRIS"):
     return keypoints, corner_response
 
 def anms(keypoints, N_Best = 500):
-    """Applies Adaptive Non-Maximal Suppression (ANMS)."""
     if len(keypoints) < N_Best:
         return keypoints
     keypoints = np.array(keypoints, dtype=np.float32)
@@ -59,7 +58,6 @@ def anms(keypoints, N_Best = 500):
     return keypoints[best_indices]
 
 def feature_desc(img, keypoints, patch_size=40):
-    """Extracts feature descriptors from keypoints."""
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if len(img.shape) == 3 else img
     desc = []
     valid_keypoints = []  # To store only keypoints that have valid descriptors

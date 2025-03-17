@@ -8,7 +8,6 @@ import cv2
 import random
 
 def feature_matching(desc1, desc2, thershold=0.3):
-    """Matches features using SSD distance."""
     matches = []
     for i, d1 in enumerate(desc1):
         ssd = np.sum((desc2 - d1) ** 2, axis=1)
@@ -38,6 +37,22 @@ def apply_homography(H, pts):
     return transformed_pts
 
 def RANSAC(match_kp1, match_kp2, iter=1000, threshold=4):
+    """
+    Performs RANSAC to estimate the best homography matrix H.
+
+    Parameters:
+        match_kp1: Keypoints from image 1
+        match_kp2: Corresponding keypoints from image 2
+        iter: Number of iterations
+        N: Minimum inliers required to consider a good model
+        thr: Distance threshold for inliers
+
+    Returns:
+        H_best: Best homography matrix found
+        inliers1: Inliers from image 1
+        inliers2: Inliers from image 2
+    """
+
     if len(match_kp1) < 4 or len(match_kp2) < 4:
         print(f"Error: Not enough matches for RANSAC. Found only {len(match_kp1)} matches.")
         return None, None, None  # Not enough points for homography estimation
