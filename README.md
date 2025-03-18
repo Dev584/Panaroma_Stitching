@@ -13,7 +13,7 @@ It takes multiple overlapping images and stitches them into a **single panoramic
 ## 📷 Example
 | Input Images | Stitched Panorama |
 |-------------|------------------|
-| ![Image 1](images/1.jpg) ![Image 2](images/2.jpg) | ![Panorama](stitched_panorama.jpg) |
+| ![Image 1](images/2.jpg) ![Image 2](images/3.jpg) | ![Panorama](stitched_panorama.jpg) |
 
 ---
 
