@@ -20,7 +20,7 @@ It takes multiple overlapping images and stitches them into a **single panoramic
 ## ⚙️ Installation
 1. **Clone this repository**
    ```sh
-   git clone https://github.com/yourusername/Panorama-Stitching.git
+   git clone https://github.com/Dev584/Panorama-Stitching.git
    cd Panorama-Stitching
    ```
 
